@@ -1,0 +1,63 @@
+import urllib2
+import re
+import sys
+
+#myUrl = 'http://www.dianping.com/search/category/3/10/g101'
+myUrl = 'http://www.dianping.com/search/category/3/10/g101'
+shopUrlItem = []
+user_agent = 'Mozilla/5.0 (compatible; MSIE 5.5; Windows NT)'
+headers = {'User-Agent': user_agent}
+
+for i in range(0, 49):
+    response = urllib2.urlopen(urllib2.Request(myUrl, headers=headers))
+    page = response.read()
+    unicodePage = page.decode('utf-8')
+
+    nextPageUri = re.findall('<div.*?class="page".*?>.*?<a.*?class="cur".*?>.*?</a>.*?<a.*?href="(.*?)".*?rel="nofollow".*?class="next".*?>', unicodePage, re.S)
+    print nextPageUri
+    myUrl = 'http://www.dianping.com' + ''.join(nextPageUri)
+
+
+    shopUri = re.findall('<div.*?class="pic".*?>.*?<a.*?target="_blank".*?href="(.*?)".*?>.*?</a>', unicodePage, re.S)
+    for item in shopUri:
+        shopUrlItem.append(item.replace("\n", ""))
+
+print shopUrlItem
+
+shopInfoItem = []
+
+reload(sys)
+sys.setdefaultencoding("utf-8")
+fileHandler = file('./shopAddr', 'a')
+
+for item in shopUrlItem:
+    shopUrl = 'http://www.dianping.com' + item
+    print shopUrl
+    try:
+        response = urllib2.urlopen(urllib2.Request(shopUrl, headers=headers))
+    except urllib2.RULError, e:
+        continue
+    else:
+        page = response.read()
+        unicodePage = page.decode('utf-8')
+
+        shopInfo = re.findall('<div.*?id="basic-info".*?>.*?<h1.*?>(.*?)<a.*?>.*?<div.*?class="expand-info.*?address">.*?<span.*?class="item".*?>(.*?)</span>.*?</div>', unicodePage, re.S)
+        for item in shopInfo:
+            shopInfoItem.append([item[0].replace('\n', '').replace(' ', ''), item[1].replace('\n', '').replace(' ', '')])
+            print item[0].replace('\n', '').replace(' ', '') + ' ' + item[1].replace('\n', '').replace(' ', '')
+            fileHandler.write(item[0].replace('\n', '').replace(' ', '') + ' ' + item[1].replace('\n', '').replace(' ', '') + '\n')
+
+fileHandler.close
+
+'''
+reload(sys)
+sys.setdefaultencoding("utf-8")
+
+fileHandler = file('./shopAddr', 'a+')
+
+for item in shopInfoItem:
+    print item[0] + ' ' + item[1]
+    fileHandler.write(item[0] + ' ' + item[1] + '\n')
+
+fileHandler.close
+'''
